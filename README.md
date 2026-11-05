@@ -44,6 +44,12 @@ Open the Vite URL (normally `http://localhost:5173`). The API is at `http://127.
 
 The storefront connects to `http://127.0.0.1:8000/api` by default. To use another API origin, define `VITE_API_URL` in a root `.env` file before starting Vite, for example `VITE_API_URL=http://localhost:8000/api`.
 
+## Deploying the storefront to GitHub Pages
+
+The Pages site must publish the Vite build output, not the repository source folder. The workflow in `.github/workflows/deploy-pages.yml` builds the frontend and deploys `dist/` when changes reach `main`. For the first workflow deployment, open **Settings → Pages** and set the publishing source to **GitHub Actions**. The Vite build automatically uses the repository subpath on Actions, so the script and asset URLs work at `https://loidforger191.github.io/ShoppingWEB.github.io/`.
+
+GitHub Pages hosts only the static React frontend; it does not run Django or MySQL. Without a configured API, the site displays a browsable sample-catalog preview and clearly indicates that account, cart, and checkout features require the Django API. To enable those features, deploy the Django backend separately over HTTPS, set the repository Actions variable `VITE_API_URL` to its `/api` URL, and allow the Pages origin in Django's `FRONTEND_ORIGIN`. Re-run the Pages workflow after changing the variable.
+
 ## MySQL configuration
 
 Create a database using UTF-8 and a dedicated database user, then set the backend environment variables before running Django. Copy `backend/.env.example` to `backend/.env` as a reference; Django settings intentionally read environment variables directly and do not load `.env` files automatically. In PowerShell, set the values in the current terminal before starting Django:

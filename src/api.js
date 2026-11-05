@@ -1,6 +1,9 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "");
 
 export async function api(path, options = {}) {
+  if (!API_URL) {
+    throw new Error("The storefront preview is available, but sign-in and checkout need a deployed Django API. Set VITE_API_URL to your API URL and rebuild.");
+  }
   const send = async (accessToken) => {
     const headers = { "Content-Type": "application/json", ...options.headers };
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
