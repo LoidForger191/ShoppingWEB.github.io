@@ -5,6 +5,7 @@ import {
   Truck, X,
 } from "lucide-react";
 import { api, clearTokens, hasSession, login, register } from "./api.js";
+import { sampleCategories, sampleProducts } from "./sampleCatalog.js";
 
 const money = (value) => `$${Number(value).toFixed(2)}`;
 
@@ -23,6 +24,7 @@ function App() {
   const [user, setUser] = useState(hasSession());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [previewMode, setPreviewMode] = useState(false);
   const [notice, setNotice] = useState("");
 
   const loadCatalog = async () => {
@@ -39,7 +41,11 @@ function App() {
       ]);
       setProducts(items);
       setCategories(groups);
+      setPreviewMode(false);
     } catch (requestError) {
+      setProducts(sampleProducts);
+      setCategories(sampleCategories);
+      setPreviewMode(true);
       setError(requestError.message);
     } finally {
       setLoading(false);
@@ -68,7 +74,12 @@ function App() {
   useEffect(() => { loadPrivateData(); }, [user]);
 
   const sortedProducts = useMemo(() => {
-    const sorted = [...products];
+    const query = search.trim().toLowerCase();
+    const sorted = products.filter((product) => (
+      (category === "all" || product.category.slug === category)
+      && Number(product.price) <= maxPrice
+      && (!query || `${product.name} ${product.description}`.toLowerCase().includes(query))
+    ));
     if (sort === "price-low") sorted.sort((a, b) => Number(a.price) - Number(b.price));
     if (sort === "price-high") sorted.sort((a, b) => Number(b.price) - Number(a.price));
     if (sort === "rating") sorted.sort((a, b) => Number(b.rating) - Number(a.rating));
@@ -83,6 +94,10 @@ function App() {
   };
 
   const addToCart = async (product) => {
+    if (previewMode) {
+      notify("This is a catalog preview. Connect the Django API to enable accounts and checkout.");
+      return;
+    }
     if (!user) {
       setActiveProduct(null);
       setAuthMode("login");
@@ -197,6 +212,7 @@ function App() {
         </section>
 
         <section className="shop-section" id="shop">
+          {previewMode && <div className="preview-banner"><span><strong>Store preview</strong> Browsing is available; accounts, cart, and checkout need the Django API to be deployed.</span><button onClick={loadCatalog}>Retry connection</button></div>}
           <div className="section-top">
             <div>
               <span className="eyebrow"><span /> THE GOOD SHOP</span>
@@ -232,7 +248,7 @@ function App() {
                   <div className="product-info">
                     <div className="product-meta"><span>{product.category.name}</span><span className="rating"><Star size={12} fill="currentColor" /> {Number(product.rating).toFixed(1)}</span></div>
                     <button className="product-name" onClick={() => setActiveProduct(product)}>{product.name}</button>
-                    <div className="product-bottom"><span className="price">{money(product.price)}</span><button className="add-button" onClick={() => addToCart(product)} aria-label={`Add ${product.name} to bag`} disabled={!product.stock}><Plus size={16} /> <span>Add</span></button></div>
+                    <div className="product-bottom"><span className="price">{money(product.price)}</span><button className="add-button" onClick={() => addToCart(product)} aria-label={`Add ${product.name} to bag`} disabled={!product.stock || previewMode} title={previewMode ? "Connect the Django API to enable checkout" : ""}><Plus size={16} /> <span>{previewMode ? "Preview" : "Add"}</span></button></div>
                   </div>
                 </article>
               ))}
@@ -268,7 +284,7 @@ function App() {
         <section className="product-modal" role="dialog" aria-modal="true" aria-label={activeProduct.name}>
           <button className="close-button" onClick={() => setActiveProduct(null)} aria-label="Close"><X /></button>
           <div className="modal-image"><img src={activeProduct.image_url} alt={activeProduct.name} /></div>
-          <div className="modal-details"><span className="eyebrow"><span /> {activeProduct.category.name.toUpperCase()}</span><h2>{activeProduct.name}</h2><div className="modal-rating"><Star size={15} fill="currentColor" /> {Number(activeProduct.rating).toFixed(1)} <span>· Loved by our community</span></div><p>{activeProduct.description}</p><div className="modal-price">{money(activeProduct.price)}</div><button className="button button-dark full-button" onClick={() => addToCart(activeProduct)} disabled={!activeProduct.stock}>{activeProduct.stock ? "Add to bag" : "Out of stock"} <ArrowRight size={16} /></button><small><Truck size={15} /> Free shipping on orders over $75</small></div>
+          <div className="modal-details"><span className="eyebrow"><span /> {activeProduct.category.name.toUpperCase()}</span><h2>{activeProduct.name}</h2><div className="modal-rating"><Star size={15} fill="currentColor" /> {Number(activeProduct.rating).toFixed(1)} <span>· Loved by our community</span></div><p>{activeProduct.description}</p><div className="modal-price">{money(activeProduct.price)}</div><button className="button button-dark full-button" onClick={() => addToCart(activeProduct)} disabled={!activeProduct.stock || previewMode}>{previewMode ? "Preview only" : activeProduct.stock ? "Add to bag" : "Out of stock"} <ArrowRight size={16} /></button><small><Truck size={15} /> Free shipping on orders over $75</small></div>
         </section>
       </div>}
 
